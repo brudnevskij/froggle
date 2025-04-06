@@ -1,6 +1,6 @@
 use crate::lexer::Token::{EOF, Identifier, Keyword, Number, Operator, Punctuation};
-use std::num::ParseIntError;
 
+#[derive(Debug)]
 pub enum Token {
     Punctuation(String),
     Keyword(String),
@@ -34,9 +34,8 @@ impl<'a> Lexer<'a> {
     //
     fn parse(&mut self) -> Vec<Token> {
         let mut token_stream = Vec::new();
-        let mut word = String::new();
 
-        while !self.is_at_end() {
+        loop {
             if let Some(c) = self.peek() {
                 match c {
                     '(' | ')' | ';' => {
@@ -70,7 +69,7 @@ impl<'a> Lexer<'a> {
                     ' ' | '\n' | '\t' | '\r' => {
                         self.position += 1;
                     }
-                    '+' | '-' | '*' | '/' => {
+                    '+' | '-' | '*' | '/' | '=' => {
                         token_stream.push(Operator(c.to_string()));
                         self.position += 1;
                     }
@@ -85,5 +84,49 @@ impl<'a> Lexer<'a> {
         }
 
         token_stream
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_single_identifier() {
+        let mut lexer = Lexer::new("frog");
+        let tokens = lexer.parse();
+
+        assert_eq!(tokens.len(), 2);
+        assert!(matches!(tokens[0], Identifier(ref s) if s == "frog"));
+        assert!(matches!(tokens[1], EOF));
+    }
+
+    #[test]
+    fn test_let_assignment() {
+        let mut lexer = Lexer::new("let x = 42;");
+        let tokens = lexer.parse();
+        println!("{:?}", tokens);
+
+        assert_eq!(tokens.len(), 6);
+        assert!(matches!(tokens[0], Keyword(ref s) if s == "let"));
+        assert!(matches!(tokens[1], Identifier(ref s) if s == "x"));
+        assert!(matches!(tokens[2], Operator(ref s) if s == "="));
+        assert!(matches!(tokens[3], Number(n) if n == 42));
+        assert!(matches!(tokens[4], Punctuation(ref s) if s == ";"));
+        assert!(matches!(tokens[5], EOF));
+    }
+
+    #[test]
+    fn test_arithmetic_expression() {
+        let mut lexer = Lexer::new("1 + 2 * 3");
+        let tokens = lexer.parse();
+
+        assert_eq!(tokens.len(), 6);
+        assert!(matches!(tokens[0], Number(1)));
+        assert!(matches!(tokens[1], Operator(ref s) if s == "+"));
+        assert!(matches!(tokens[2], Number(2)));
+        assert!(matches!(tokens[3], Operator(ref s) if s == "*"));
+        assert!(matches!(tokens[4], Number(3)));
+        assert!(matches!(tokens[5], EOF));
     }
 }
