@@ -1,6 +1,6 @@
 use crate::lexer::Token::{EOF, Identifier, Keyword, Number, Operator, Punctuation};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
     Punctuation(String),
     Keyword(String),
@@ -16,7 +16,7 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    fn new(input: &'a str) -> Lexer<'a> {
+    pub fn new(input: &'a str) -> Lexer<'a> {
         Lexer { input, position: 0 }
     }
 
@@ -32,7 +32,7 @@ impl<'a> Lexer<'a> {
     }
 
     //
-    fn parse(&mut self) -> Vec<Token> {
+    pub fn parse(&mut self) -> Vec<Token> {
         let mut token_stream = Vec::new();
 
         loop {
