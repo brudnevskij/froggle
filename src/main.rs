@@ -1,3 +1,4 @@
+mod interpreter;
 mod lexer;
 mod parser;
 
@@ -8,5 +9,9 @@ fn main() {
 
     let mut parser = parser::Parser::new(tokens);
     let statements = parser.parse();
-    println!("{:#?}", statements);
+
+    let mut interpreter = interpreter::Interpreter::new();
+    interpreter.interpret(statements);
+    println!("Environment:");
+    println!("{:#?}", interpreter.environment);
 }
