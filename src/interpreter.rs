@@ -55,3 +55,79 @@ impl Interpreter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{Expression, Statement};
+
+    fn number(n: i32) -> Expression {
+        Expression::Number(n)
+    }
+
+    fn var(name: &str) -> Expression {
+        Expression::Variable(name.to_string())
+    }
+
+    fn bin(left: Expression, op: &str, right: Expression) -> Expression {
+        Expression::BinaryOperation {
+            left: Box::new(left),
+            operator: op.to_string(),
+            right: Box::new(right),
+        }
+    }
+
+    #[test]
+    fn test_variable_assignment() {
+        let program = vec![Statement::Assignment("x".to_string(), number(10))];
+        let mut interpreter = Interpreter::new();
+        interpreter.interpret(program);
+
+        assert_eq!(interpreter.environment.get("x"), Some(&10));
+    }
+
+    #[test]
+    fn test_expression_evaluation() {
+        let program = vec![
+            Statement::Assignment("x".to_string(), number(5)),
+            Statement::Assignment("y".to_string(), bin(var("x"), "+", number(3))),
+        ];
+
+        let mut interpreter = Interpreter::new();
+        interpreter.interpret(program);
+
+        assert_eq!(interpreter.environment.get("y"), Some(&8));
+    }
+
+    #[test]
+    fn test_operator_precedence() {
+        // x = 1 + 2 * 3
+        let expr = bin(
+            number(1),
+            "+",
+            bin(number(2), "*", number(3)),
+        );
+
+        let program = vec![Statement::Assignment("x".to_string(), expr)];
+        let mut interpreter = Interpreter::new();
+        interpreter.interpret(program);
+
+        assert_eq!(interpreter.environment.get("x"), Some(&7));
+    }
+
+    #[test]
+    fn test_parentheses_grouping() {
+        // x = (1 + 2) * 3
+        let expr = bin(
+            bin(number(1), "+", number(2)),
+            "*",
+            number(3),
+        );
+
+        let program = vec![Statement::Assignment("x".to_string(), expr)];
+        let mut interpreter = Interpreter::new();
+        interpreter.interpret(program);
+
+        assert_eq!(interpreter.environment.get("x"), Some(&9));
+    }
+}
