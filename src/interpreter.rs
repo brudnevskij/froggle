@@ -102,11 +102,7 @@ mod tests {
     #[test]
     fn test_operator_precedence() {
         // x = 1 + 2 * 3
-        let expr = bin(
-            number(1),
-            "+",
-            bin(number(2), "*", number(3)),
-        );
+        let expr = bin(number(1), "+", bin(number(2), "*", number(3)));
 
         let program = vec![Statement::Assignment("x".to_string(), expr)];
         let mut interpreter = Interpreter::new();
@@ -118,11 +114,7 @@ mod tests {
     #[test]
     fn test_parentheses_grouping() {
         // x = (1 + 2) * 3
-        let expr = bin(
-            bin(number(1), "+", number(2)),
-            "*",
-            number(3),
-        );
+        let expr = bin(bin(number(1), "+", number(2)), "*", number(3));
 
         let program = vec![Statement::Assignment("x".to_string(), expr)];
         let mut interpreter = Interpreter::new();
