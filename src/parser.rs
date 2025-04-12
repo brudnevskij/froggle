@@ -225,6 +225,10 @@ mod tests {
         Token::Punctuation(p.to_string())
     }
 
+    fn token_type(p: &str) -> Token {
+        Token::Type(p.to_string())
+    }
+
     fn eof() -> Token {
         Token::EOF
     }
@@ -234,6 +238,8 @@ mod tests {
         let tokens = vec![
             token_keyword("let"),
             token_ident("x"),
+            token_punct(":"),
+            token_type("number"),
             token_operator("="),
             token_number(42),
             token_punct(";"),
@@ -274,6 +280,8 @@ mod tests {
         let tokens = vec![
             token_keyword("let"),
             token_ident("x"),
+            token_punct(":"),
+            token_type("number"),
             token_operator("="),
             token_number(1),
             token_operator("+"),
@@ -297,11 +305,7 @@ mod tests {
             }),
         };
 
-        let expected = vec![Statement::Assignment(
-            "x".to_string(),
-            Type::Number,
-            expected_expr,
-        )];
+        let expected = vec![Statement::Assignment("x".to_string(), expected_expr)];
 
         assert_eq!(ast, expected);
     }
@@ -312,6 +316,8 @@ mod tests {
         let tokens = vec![
             token_keyword("let"),
             token_ident("x"),
+            token_punct(":"),
+            token_type("number"),
             token_operator("="),
             token_punct("("),
             token_number(1),
@@ -337,11 +343,7 @@ mod tests {
             right: Box::new(Expression::Number(3)),
         };
 
-        let expected = vec![Statement::Assignment(
-            "x".to_string(),
-            Type::Number,
-            expected_expr,
-        )];
+        let expected = vec![Statement::Assignment("x".to_string(), expected_expr)];
 
         assert_eq!(ast, expected);
     }
