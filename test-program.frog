@@ -1,0 +1,5 @@
+let x = 15;
+let y = 19;
+let result = x * (y + 7);
+
+croak result;
