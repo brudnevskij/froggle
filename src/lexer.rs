@@ -1,4 +1,5 @@
 use crate::lexer::Token::{EOF, Identifier, Keyword, Number, Operator, Punctuation};
+use crate::parser::Type;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -7,6 +8,8 @@ pub enum Token {
     Operator(String),
     Identifier(String),
     Number(i32),
+    Bool(bool),
+    Type(String),
     EOF,
 }
 
@@ -27,6 +30,13 @@ impl<'a> Lexer<'a> {
         self.input[self.position..].chars().next()
     }
 
+    fn peek_next(&self) -> Option<char> {
+        if self.is_at_end() {
+            return None;
+        }
+        self.input[self.position..].chars().nth(1)
+    }
+
     fn is_at_end(&self) -> bool {
         self.position >= self.input.len()
     }
@@ -38,7 +48,7 @@ impl<'a> Lexer<'a> {
         loop {
             if let Some(c) = self.peek() {
                 match c {
-                    '(' | ')' | ';' => {
+                    '(' | ')' | ';' | ':' => {
                         token_stream.push(Punctuation(c.to_string()));
                         self.position += 1;
                     }
@@ -57,6 +67,8 @@ impl<'a> Lexer<'a> {
 
                         let token = match word.as_str() {
                             "let" | "croak" => Keyword(word),
+                            "bool" | "number" => Token::Type(word),
+                            "true" | "false" => Token::Bool(word.as_str() == "true"),
                             _ => match word.parse::<i32>() {
                                 Ok(number) => Number(number),
                                 Err(_) => Identifier(word),
@@ -69,7 +81,16 @@ impl<'a> Lexer<'a> {
                     ' ' | '\n' | '\t' | '\r' => {
                         self.position += 1;
                     }
-                    '+' | '-' | '*' | '/' | '=' => {
+                    '=' => {
+                        if let Some('=') = self.peek_next() {
+                            token_stream.push(Operator("==".to_string()));
+                            self.position += 2;
+                        } else {
+                            token_stream.push(Operator("=".to_string()));
+                            self.position += 1;
+                        }
+                    }
+                    '+' | '-' | '*' | '/' | '>' | '<' => {
                         token_stream.push(Operator(c.to_string()));
                         self.position += 1;
                     }

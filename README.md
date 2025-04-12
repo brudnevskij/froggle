@@ -5,6 +5,7 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 ## ✨ Initial Features
 
 - Integer arithmetic (`+`, `-`, `*`, `/`)
+- Boolean operators (`==`, `>`, `<`)
 - Variable assignments
 - Print statement
 
@@ -19,13 +20,16 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 <statement> ::= <assignment>
               | <print>
 
-<assignment> ::= "let" <identifier> "=" <expression>
+<assignment> ::= "let" <identifier> ":" <type> "=" <expression>
 
 <print> ::= "croak" <expression>
 
 <expression> ::= <term>
                | <expression> "+" <term>
                | <expression> "-" <term>
+               | <expression>  "==" <term>
+               | <expression>  ">" <term>
+               | <expression>  "<" <term>               
 
 <term> ::= <factor>
          | <term> "*" <factor>
@@ -33,11 +37,14 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 
 <factor> ::= <number>
            | <identifier>
+           | <bool>
            | "(" <expression> ")"
 
 <identifier> ::= <letter> { <letter> | <digit> }
 <number> ::= <digit> { <digit> }
+<bool> ::= "true" | "false"
 
 <letter> ::= "a" | ... | "z" | "A" | ... | "Z"
 <digit> ::= "0" | ... | "9"
+<type> ::= "number" | "bool"
 ```

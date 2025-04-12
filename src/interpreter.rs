@@ -1,8 +1,34 @@
-use crate::parser::{Expression, Statement};
+use crate::interpreter::Value::Bool;
+use crate::parser::{Expression, Statement, Type};
+use std::cmp::PartialEq;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
+pub enum Value {
+    Number(i32),
+    Bool(bool),
+}
+
 pub struct Interpreter {
-    pub environment: HashMap<String, i32>,
+    pub environment: HashMap<String, Value>,
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            Value::Number(n) => {
+                if let Value::Number(o) = other {
+                    return n == o;
+                }
+            }
+            Bool(b) => {
+                if let Bool(o) = other {
+                    return b == o;
+                }
+            }
+        }
+        false
+    }
 }
 
 impl Interpreter {
@@ -25,31 +51,37 @@ impl Interpreter {
                 self.environment.insert(var, value);
             }
             Statement::Print(exp) => {
-                println!("{}", self.eval_expression(exp))
+                println!("{:?}", self.eval_expression(exp))
             }
         }
     }
-    fn eval_expression(&mut self, expression: Expression) -> i32 {
+    fn eval_expression(&mut self, expression: Expression) -> Value {
         match expression {
-            Expression::Number(n) => n,
+            Expression::Number(n) => Value::Number(n),
+            Expression::Bool(b) => Value::Bool(b),
             Expression::Variable(var) => match self.environment.get(&var) {
                 None => panic!("Undefined variable: {}", var),
-                Some(val) => *val,
+                Some(val) => val.clone(),
             },
             Expression::BinaryOperation {
                 left,
                 operator,
                 right,
             } => {
-                let right_val = self.eval_expression(*right);
-                let left_val = self.eval_expression(*left);
+                let left = self.eval_expression(*left);
+                let right = self.eval_expression(*right);
 
-                match operator.as_str() {
-                    "+" => right_val + left_val,
-                    "-" => right_val - left_val,
-                    "*" => right_val * left_val,
-                    "/" => right_val / left_val,
-                    v => panic!("Undefined operator: {}", v),
+                match (left, operator.as_str(), right) {
+                    (Value::Number(left), "+", Value::Number(right)) => Value::Number(left + right),
+                    (Value::Number(left), "-", Value::Number(right)) => Value::Number(left - right),
+                    (Value::Number(left), "*", Value::Number(right)) => Value::Number(left * right),
+                    (Value::Number(left), "/", Value::Number(right)) => Value::Number(left / right),
+
+                    (Value::Number(left), ">", Value::Number(right)) => Value::Bool(left > right),
+                    (Value::Number(left), "<", Value::Number(right)) => Value::Bool(left < right),
+
+                    (l, "==", r) => Bool(l == r),
+                    _ => panic!("unsupported operation: {}", operator.as_str()),
                 }
             }
         }
@@ -83,7 +115,7 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("x"), Some(&10));
+        assert_eq!(interpreter.environment.get("x"), Some(&Value::Number(10)));
     }
 
     #[test]
@@ -96,7 +128,7 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("y"), Some(&8));
+        assert_eq!(interpreter.environment.get("y"), Some(&Value::Number(8)));
     }
 
     #[test]
@@ -108,7 +140,7 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("x"), Some(&7));
+        assert_eq!(interpreter.environment.get("x"), Some(&Value::Number(7)));
     }
 
     #[test]
@@ -120,6 +152,6 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("x"), Some(&9));
+        assert_eq!(interpreter.environment.get("x"), Some(&Value::Number(9)));
     }
 }

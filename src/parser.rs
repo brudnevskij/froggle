@@ -1,4 +1,6 @@
 use crate::lexer::Token;
+use crate::parser::Expression::BinaryOperation;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
@@ -9,6 +11,7 @@ pub enum Statement {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Number(i32),
+    Bool(bool),
     Variable(String),
     BinaryOperation {
         left: Box<Expression>,
@@ -17,14 +20,25 @@ pub enum Expression {
     },
 }
 
+#[derive(Debug, PartialEq)]
+pub enum Type {
+    Number,
+    Boolean,
+}
+
 pub struct Parser {
     tokens: Vec<Token>,
+    type_env: HashMap<String, Type>,
     current: usize,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, current: 0 }
+        Self {
+            tokens,
+            current: 0,
+            type_env: HashMap::new(),
+        }
     }
 
     fn peek(&self) -> Option<&Token> {
@@ -55,10 +69,31 @@ impl Parser {
                     Some(Token::Identifier(name)) => name.clone(),
                     _ => panic!("Expected identifier after 'let'"),
                 };
+
+                // skipping ":"
+                self.advance();
+                let data_type = match self.advance() {
+                    Some(Token::Type(s)) if s.as_str() == "bool" => Type::Boolean,
+                    Some(Token::Type(s)) if s.as_str() == "number" => Type::Number,
+                    _ => panic!("Expected type after let"),
+                };
+                // assert data type
+                match self.type_env.get(&name) {
+                    None => {
+                        self.type_env.insert(name.clone(), data_type);
+                    }
+                    Some(dt) => {
+                        if dt != &data_type {
+                            // todo: add more logs
+                            panic!("Type mismatch!");
+                        }
+                    }
+                }
+
                 match self.advance() {
                     Some(Token::Operator(op)) if op == "=" => {}
                     _ => panic!("Expected '='"),
-                }
+                };
                 let expr = self.parse_expression();
                 self.expect(Token::Punctuation(";".to_string()));
                 Some(Statement::Assignment(name, expr))
@@ -76,6 +111,27 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Expression {
+        let mut expression = self.parse_addition();
+
+        while let Some(Token::Operator(op)) = self.peek() {
+            if op == "==" || op == ">" || op == "<" {
+                let op = op.clone();
+                self.advance();
+
+                let right = self.parse_addition();
+                expression = BinaryOperation {
+                    left: Box::new(expression),
+                    operator: op,
+                    right: Box::new(right),
+                };
+            } else {
+                break;
+            }
+        }
+        expression
+    }
+
+    fn parse_addition(&mut self) -> Expression {
         let mut expression = self.parse_term();
 
         while let Some(Token::Operator(op)) = self.peek() {
@@ -127,6 +183,7 @@ impl Parser {
     fn parse_factor(&mut self) -> Expression {
         match self.advance() {
             Some(Token::Number(n)) => Expression::Number(*n),
+            Some(Token::Bool(b)) => Expression::Bool(*b),
             Some(Token::Identifier(name)) => Expression::Variable(name.clone()),
             Some(Token::Punctuation(p)) if p == "(" => {
                 let expr = self.parse_expression();
@@ -240,7 +297,11 @@ mod tests {
             }),
         };
 
-        let expected = vec![Statement::Assignment("x".to_string(), expected_expr)];
+        let expected = vec![Statement::Assignment(
+            "x".to_string(),
+            Type::Number,
+            expected_expr,
+        )];
 
         assert_eq!(ast, expected);
     }
@@ -276,7 +337,11 @@ mod tests {
             right: Box::new(Expression::Number(3)),
         };
 
-        let expected = vec![Statement::Assignment("x".to_string(), expected_expr)];
+        let expected = vec![Statement::Assignment(
+            "x".to_string(),
+            Type::Number,
+            expected_expr,
+        )];
 
         assert_eq!(ast, expected);
     }

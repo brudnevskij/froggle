@@ -61,7 +61,7 @@ fn run_file(path: &str) {
         let ast = parser.parse();
         let mut interpreter = interpreter::Interpreter::new();
         interpreter.interpret(ast);
-    }else {
+    } else {
         panic!("Error reading file {}. Exiting.", path);
     }
 }
