@@ -33,6 +33,23 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 - Variable assignments
 - Print statement
 
+## 🛠️ Installation
+Assuming you have Rust installed, build project: 
+```shell
+cargo build --release
+```
+
+Add binary to PATH.
+```shell
+export PATH="$PATH:$(pwd)/target/release"
+```
+Run:
+```shell
+froggle ./source_file.frog
+# or run the REPL
+froggle
+```
+
 ## 🔣 Grammar (BNF)
 
 ```bnf
