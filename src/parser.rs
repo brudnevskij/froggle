@@ -1,3 +1,4 @@
+use crate::interpreter::Value;
 use crate::lexer::Token;
 use crate::parser::Expression::BinaryOperation;
 use crate::parser::Statement::While;
@@ -34,16 +35,18 @@ pub enum Type {
 
 pub struct Parser {
     tokens: Vec<Token>,
-    type_env: HashMap<String, Type>,
+    type_envs: Vec<HashMap<String, Type>>,
     current: usize,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
+        let mut type_envs = Vec::new();
+        type_envs.push(HashMap::new());
         Self {
             tokens,
             current: 0,
-            type_env: HashMap::new(),
+            type_envs,
         }
     }
 
@@ -60,6 +63,41 @@ impl Parser {
         Some(token)
     }
 
+    fn enter_scope(&mut self) {
+        self.type_envs.push(HashMap::new());
+    }
+
+    fn exit_scope(&mut self) {
+        self.type_envs.pop();
+    }
+
+    fn declare_variable(&mut self, name: String, type_name: Type) {
+        self.type_envs
+            .last_mut()
+            .expect(format!("error declaring variable {}", name).as_str())
+            .insert(name, type_name);
+    }
+
+    fn verify_variable_type(&mut self, name: String, assignment_type: Type) {
+        let variable_type = self.resolve_variable(&name);
+        if variable_type == assignment_type {
+            return;
+        }
+        panic!(
+            "assignment type mismatch: {}:{:?} = {:?}",
+            name, variable_type, assignment_type
+        );
+    }
+
+    fn resolve_variable(&mut self, name: &str) -> Type {
+        for scope in self.type_envs.iter_mut().rev() {
+            if let Some(type_name) = scope.get(name) {
+                return type_name.clone();
+            }
+        }
+        panic!("no variable {} in existing scopes", name);
+    }
+
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut statements = Vec::new();
         while let Some(stmt) = self.parse_statement() {
@@ -67,7 +105,8 @@ impl Parser {
         }
         statements
     }
-    pub fn parse_statement(&mut self) -> Option<Statement> {
+
+    fn parse_statement(&mut self) -> Option<Statement> {
         match self.peek() {
             Some(Token::Keyword(k)) if k == "let" => {
                 self.advance();
@@ -77,16 +116,18 @@ impl Parser {
                 };
 
                 match self.advance() {
+                    // type declaration omitted
                     Some(Token::Operator(op)) if op == "=" => {
                         let expr = self.parse_expression();
                         self.expect(Token::Punctuation(";".to_string()));
 
                         let data_type = self.infer_datatype(&expr);
 
-                        self.type_env.insert(name.clone(), data_type);
+                        self.declare_variable(name.clone(), data_type);
 
                         Some(Statement::Declaration(name, expr))
                     }
+                    // explicit type declaration
                     Some(Token::Punctuation(op)) if op == ":" => {
                         let declared_data_type = match self.advance() {
                             Some(Token::Type(s)) if s.as_str() == "bool" => Type::Boolean,
@@ -106,7 +147,8 @@ impl Parser {
                                 declared_data_type, expr_data_type
                             );
                         }
-                        self.type_env.insert(name.clone(), declared_data_type);
+
+                        self.declare_variable(name.clone(), declared_data_type);
 
                         Some(Statement::Declaration(name, expr))
                     }
@@ -114,16 +156,12 @@ impl Parser {
                 }
             }
 
-            Some(Token::Identifier(_)) => {
-                let name = match self.advance() {
-                    Some(Token::Identifier(name)) => name.clone(),
-                    // shouldn't happen btw
-                    _ => panic!("Expected identifier"),
-                };
-                let variable_type = match self.type_env.get(&name).cloned() {
-                    None => panic!("Assigned variable is not defined"),
-                    Some(t) => t,
-                };
+            Some(Token::Identifier(name)) => {
+                let name = name.clone();
+                self.advance();
+
+                let variable_type = self.resolve_variable(&name);
+
                 self.expect(Token::Operator("=".to_string()));
 
                 let expr = self.parse_expression();
@@ -152,6 +190,7 @@ impl Parser {
                 let condition = self.parse_expression();
                 self.expect(Token::Punctuation("{".to_string()));
 
+                self.enter_scope();
                 let mut body = Vec::new();
                 while let Some(t) = self.peek() {
                     if t == &Token::Punctuation("}".to_string()) {
@@ -162,6 +201,7 @@ impl Parser {
                         body.push(stmt);
                     }
                 }
+                self.exit_scope();
 
                 self.expect(Token::Punctuation("}".to_string()));
                 Some(While { condition, body })
@@ -176,13 +216,7 @@ impl Parser {
         match exp {
             Expression::Number(_) => Type::Number,
             Expression::Bool(_) => Type::Boolean,
-            Expression::Variable(name) => {
-                if let Some(t) = self.type_env.get(name) {
-                    t.clone()
-                } else {
-                    panic!("Unknown variable {}", name)
-                }
-            }
+            Expression::Variable(name) => self.resolve_variable(name),
             BinaryOperation {
                 left,
                 operator,
