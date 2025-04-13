@@ -1,5 +1,7 @@
-let x = 15;
-let y = 19;
-let result = x * (y + 7);
+let x: number = 0;
 
-croak result;
+while x < 9
+{
+  let x: number = x + 50;
+  croak x;
+}

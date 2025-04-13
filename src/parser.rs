@@ -1,14 +1,19 @@
 use crate::lexer::Token;
 use crate::parser::Expression::BinaryOperation;
+use crate::parser::Statement::While;
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Assignment(String, Expression),
     Print(Expression),
+    While {
+        condition: Expression,
+        body: Vec<Statement>,
+    },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Number(i32),
     Bool(bool),
@@ -105,6 +110,27 @@ impl Parser {
                 self.expect(Token::Punctuation(";".to_string()));
                 Some(Statement::Print(expr))
             }
+
+            Some(Token::Keyword(k)) if k == "while" => {
+                self.advance();
+                let condition = self.parse_expression();
+                self.expect(Token::Punctuation("{".to_string()));
+
+                let mut body = Vec::new();
+                while let Some(t) = self.peek() {
+                    if t == &Token::Punctuation("}".to_string()) {
+                        break;
+                    }
+
+                    if let Some(stmt) = self.parse_statement() {
+                        body.push(stmt);
+                    }
+                }
+
+                self.expect(Token::Punctuation("}".to_string()));
+                Some(While { condition, body })
+            }
+
             Some(Token::EOF) => None,
             _ => panic!("Unknown statement"),
         }

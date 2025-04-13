@@ -48,11 +48,11 @@ impl<'a> Lexer<'a> {
         loop {
             if let Some(c) = self.peek() {
                 match c {
-                    '(' | ')' | ';' | ':' => {
+                    '(' | ')' | ';' | ':' | '{' | '}' => {
                         token_stream.push(Punctuation(c.to_string()));
                         self.position += 1;
                     }
-                    '0'..'9' | 'a'..'z' | 'A'..'Z' | '_' => {
+                    '0'..='9' | 'a'..='z' | 'A'..='Z' | '_' => {
                         let mut word = c.to_string();
                         self.position += 1;
 
@@ -66,7 +66,7 @@ impl<'a> Lexer<'a> {
                         }
 
                         let token = match word.as_str() {
-                            "let" | "croak" => Keyword(word),
+                            "let" | "croak" | "while" => Keyword(word),
                             "bool" | "number" => Token::Type(word),
                             "true" | "false" => Token::Bool(word.as_str() == "true"),
                             _ => match word.parse::<i32>() {

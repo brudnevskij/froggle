@@ -19,10 +19,13 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 
 <statement> ::= <assignment>
               | <print>
+              | <while>
 
 <assignment> ::= "let" <identifier> ":" <type> "=" <expression>
 
 <print> ::= "croak" <expression>
+
+<while> ::= "while" <expression> "{" <statement_list> "}"
 
 <expression> ::= <term>
                | <expression> "+" <term>

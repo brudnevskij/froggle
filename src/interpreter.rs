@@ -53,6 +53,24 @@ impl Interpreter {
             Statement::Print(exp) => {
                 println!("{:?}", self.eval_expression(exp))
             }
+            Statement::While { condition, body } => {
+                self.eval_while_loop(condition, body);
+            }
+        }
+    }
+
+    fn eval_while_loop(&mut self, condition: Expression, body: Vec<Statement>) {
+        while self.eval_condition(condition.clone()) {
+            for statement in &body {
+                self.eval_statement(statement.clone());
+            }
+        }
+    }
+
+    fn eval_condition(&mut self, condition: Expression) -> bool {
+        match self.eval_expression(condition) {
+            Bool(b) => b,
+            _ => panic!("Condition is not a boolean"),
         }
     }
     fn eval_expression(&mut self, expression: Expression) -> Value {
