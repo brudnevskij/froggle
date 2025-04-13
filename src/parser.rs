@@ -82,7 +82,8 @@ impl Parser {
                     Some(Token::Type(s)) if s.as_str() == "number" => Type::Number,
                     _ => panic!("Expected type after let"),
                 };
-                // assert data type
+
+                // check data type
                 match self.type_env.get(&name) {
                     None => {
                         self.type_env.insert(name.clone(), data_type);
@@ -90,7 +91,10 @@ impl Parser {
                     Some(dt) => {
                         if dt != &data_type {
                             // todo: add more logs
-                            panic!("Type mismatch!");
+                            panic!(
+                                "Type mismatch! {} type is {}, while expression is {}",
+                                name, dt, &data_type
+                            );
                         }
                     }
                 }
