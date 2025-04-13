@@ -50,6 +50,10 @@ impl Interpreter {
                 let value = self.eval_expression(exp);
                 self.environment.insert(var, value);
             }
+            Statement::Declaration(var, exp) => {
+                let value = self.eval_expression(exp);
+                self.environment.insert(var, value);
+            }
             Statement::Print(exp) => {
                 println!("{:?}", self.eval_expression(exp))
             }

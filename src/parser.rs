@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
+    Declaration(String, Expression),
     Assignment(String, Expression),
     Print(Expression),
     While {
@@ -91,7 +92,7 @@ impl Parser {
                     Some(dt) => {
                         if dt != &data_type {
                             panic!(
-                                "Type mismatch! {} type is {}, while expression is {}",
+                                "Type mismatch! {} type is {:?}, while expression is {:?}",
                                 name, dt, &data_type
                             );
                         }
@@ -104,9 +105,23 @@ impl Parser {
                 };
                 let expr = self.parse_expression();
                 self.expect(Token::Punctuation(";".to_string()));
-                Some(Statement::Assignment(name, expr))
+                Some(Statement::Declaration(name, expr))
             }
 
+            Some(Token::Identifier(_)) => {
+                let name = match self.advance() {
+                    Some(Token::Identifier(name)) => name.clone(),
+                    // shouldn't happen btw
+                    _ => panic!("Expected identifier"),
+                };
+
+                self.expect(Token::Operator("=".to_string()));
+
+                let expr = self.parse_expression();
+                self.expect(Token::Punctuation(";".to_string()));
+
+                Some(Statement::Assignment(name, expr))
+            }
             Some(Token::Keyword(k)) if k == "croak" => {
                 self.advance(); // consume "print"
                 let expr = self.parse_expression();
