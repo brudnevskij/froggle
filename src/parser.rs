@@ -90,7 +90,6 @@ impl Parser {
                     }
                     Some(dt) => {
                         if dt != &data_type {
-                            // todo: add more logs
                             panic!(
                                 "Type mismatch! {} type is {}, while expression is {}",
                                 name, dt, &data_type
