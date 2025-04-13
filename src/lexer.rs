@@ -1,5 +1,4 @@
 use crate::lexer::Token::{EOF, Identifier, Keyword, Number, Operator, Punctuation};
-use crate::parser::Type;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -76,7 +75,6 @@ impl<'a> Lexer<'a> {
                         };
 
                         token_stream.push(token);
-                        word = String::new();
                     }
                     ' ' | '\n' | '\t' | '\r' => {
                         self.position += 1;

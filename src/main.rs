@@ -1,5 +1,4 @@
-use std::io::{Read, Write};
-use std::path::Path;
+use std::io::Write;
 use std::{env, fs, io};
 
 mod interpreter;

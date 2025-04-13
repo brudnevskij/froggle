@@ -1,4 +1,3 @@
-use crate::interpreter::Value;
 use crate::lexer::Token;
 use crate::parser::Expression::BinaryOperation;
 use crate::parser::Statement::While;
@@ -13,6 +12,7 @@ pub enum Statement {
         condition: Expression,
         body: Vec<Statement>,
     },
+    Block(Vec<Statement>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -76,17 +76,6 @@ impl Parser {
             .last_mut()
             .expect(format!("error declaring variable {}", name).as_str())
             .insert(name, type_name);
-    }
-
-    fn verify_variable_type(&mut self, name: String, assignment_type: Type) {
-        let variable_type = self.resolve_variable(&name);
-        if variable_type == assignment_type {
-            return;
-        }
-        panic!(
-            "assignment type mismatch: {}:{:?} = {:?}",
-            name, variable_type, assignment_type
-        );
     }
 
     fn resolve_variable(&mut self, name: &str) -> Type {
@@ -207,8 +196,28 @@ impl Parser {
                 Some(While { condition, body })
             }
 
+            Some(Token::Punctuation(p)) if p == "{" => {
+                self.advance();
+
+                let mut block = Vec::new();
+                self.enter_scope();
+                while let Some(t) = self.peek() {
+                    if t == &Token::Punctuation("}".to_string()) {
+                        break;
+                    }
+
+                    if let Some(stmt) = self.parse_statement() {
+                        block.push(stmt);
+                    }
+                }
+                self.exit_scope();
+                self.expect(Token::Punctuation("}".to_string()));
+
+                Some(Statement::Block(block))
+            }
+
             Some(Token::EOF) => None,
-            _ => panic!("Unknown statement"),
+            statement => panic!("unknown statement: {:?}", statement),
         }
     }
 

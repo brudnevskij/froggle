@@ -1,5 +1,5 @@
 use crate::interpreter::Value::Bool;
-use crate::parser::{Expression, Statement, Type};
+use crate::parser::{Expression, Statement};
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 
@@ -95,6 +95,13 @@ impl Interpreter {
             Statement::While { condition, body } => {
                 self.enter_scope();
                 self.eval_while_loop(condition, body);
+                self.exit_scope();
+            }
+            Statement::Block(statements) => {
+                self.enter_scope();
+                for statement in statements {
+                    self.eval_statement(statement);
+                }
                 self.exit_scope();
             }
         }
