@@ -2,6 +2,31 @@
 
 Froggle is a tiny toy programming language written in Rust as part of a compiler construction course.
 
+
+# ✅ Froggle Feature Checklist (Course Requirements)
+
+## 🟩 Minimum for a Passing Grade (1)
+
+- [x] BNF grammar
+- [x] Lexer (tokenizer)
+- [x] Ad-hoc parser
+- [x] Expression evaluation with variables (e.g., `a + 6`)
+- [x] Interpreter that runs the program
+- [x] Global state (variable environment)
+- [x] `let` statement for variable assignment
+- [x] `croak` statement for printing
+- [x] `while` loops
+
+## ⭐️ Bonus Features (higher grades)
+
+- [x] Error reporting (e.g., type mismatches, unknown variables)
+- [x] Top-down parser with operator precedence
+- [ ] Bottom-up parser (not required for your current scope)
+- [ ] Nested scopes (e.g., block-local variables)
+- [x] Static types (`let x: number = ...`)
+- [x] Type checker with compile-time type errors
+- [ ] Transpile AST to Python or Java
+
 ## ✨ Initial Features
 
 - Integer arithmetic (`+`, `-`, `*`, `/`)
