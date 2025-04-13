@@ -1,0 +1,19 @@
+let global_variable = 777;
+croak global_variable;
+{
+    global_variable = 8;
+    croak global_variable;
+
+    let global_variable = 666;
+    croak global_variable;
+    {
+        global_variable = 888;
+        croak global_variable;
+
+        let global_variable = 666;
+        croak global_variable;
+    }
+    croak global_variable;
+}
+
+croak global_variable;
