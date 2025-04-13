@@ -1,0 +1,21 @@
+let x = 60;
+let y: number = 15;
+
+let sum = x + y;
+croak sum;
+
+let diff = x - y;
+croak diff;
+
+let product = x * y;
+croak product;
+
+let quo = x / y;
+croak quo;
+
+x = 2 * ( 3 + 2);
+croak x * x;
+
+croak x == y;
+croak x > y;
+croak x < y;
