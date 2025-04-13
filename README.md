@@ -45,6 +45,7 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
               | <print>
               | <while>
               | <assignment>
+              | <block>
 
 <declaration> ::= "let" <identifier> { ":" <type> } "=" <expression>
 
@@ -53,6 +54,8 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 <while> ::= "while" <expression> "{" <statement_list> "}"
 
 <assignment> ::= <identifier> "=" <expression>
+
+<block> ::= "{" <statement_list> "}"
 
 <expression> ::= <term>
                | <expression> "+" <term>
