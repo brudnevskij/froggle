@@ -26,7 +26,7 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     Number,
     Boolean,
@@ -76,36 +76,43 @@ impl Parser {
                     _ => panic!("Expected identifier after 'let'"),
                 };
 
-                // skipping ":"
-                self.advance();
-                let data_type = match self.advance() {
-                    Some(Token::Type(s)) if s.as_str() == "bool" => Type::Boolean,
-                    Some(Token::Type(s)) if s.as_str() == "number" => Type::Number,
-                    _ => panic!("Expected type after let"),
-                };
+                // println!("{}, {:?}",name, self.peek());
+                match self.advance() {
+                    Some(Token::Operator(op)) if op == "=" => {
+                        let expr = self.parse_expression();
+                        self.expect(Token::Punctuation(";".to_string()));
 
-                // check data type
-                match self.type_env.get(&name) {
-                    None => {
+                        let data_type = self.infer_datatype(&expr);
+
                         self.type_env.insert(name.clone(), data_type);
+
+                        Some(Statement::Declaration(name, expr))
                     }
-                    Some(dt) => {
-                        if dt != &data_type {
+                    Some(Token::Punctuation(op)) if op == ":" => {
+                        let declared_data_type = match self.advance() {
+                            Some(Token::Type(s)) if s.as_str() == "bool" => Type::Boolean,
+                            Some(Token::Type(s)) if s.as_str() == "number" => Type::Number,
+                            _ => panic!("Expected type after :"),
+                        };
+
+                        self.expect(Token::Operator("=".to_string()));
+
+                        let expr = self.parse_expression();
+                        self.expect(Token::Punctuation(";".to_string()));
+
+                        let expr_data_type = self.infer_datatype(&expr);
+                        if expr_data_type != declared_data_type {
                             panic!(
-                                "Type mismatch! {} type is {:?}, while expression is {:?}",
-                                name, dt, &data_type
+                                "Declared datatype: {:?}, inferred datatype: {:?}",
+                                declared_data_type, expr_data_type
                             );
                         }
-                    }
-                }
+                        self.type_env.insert(name.clone(), declared_data_type);
 
-                match self.advance() {
-                    Some(Token::Operator(op)) if op == "=" => {}
-                    _ => panic!("Expected '='"),
-                };
-                let expr = self.parse_expression();
-                self.expect(Token::Punctuation(";".to_string()));
-                Some(Statement::Declaration(name, expr))
+                        Some(Statement::Declaration(name, expr))
+                    }
+                    _ => panic!("Unknown declaration structure"),
+                }
             }
 
             Some(Token::Identifier(_)) => {
@@ -114,11 +121,23 @@ impl Parser {
                     // shouldn't happen btw
                     _ => panic!("Expected identifier"),
                 };
-
+                let variable_type = match self.type_env.get(&name).cloned() {
+                    None => panic!("Assigned variable is not defined"),
+                    Some(t) => t,
+                };
                 self.expect(Token::Operator("=".to_string()));
 
                 let expr = self.parse_expression();
                 self.expect(Token::Punctuation(";".to_string()));
+
+                // asserting data type
+                let expr_data_type = self.infer_datatype(&expr);
+                if expr_data_type != variable_type {
+                    panic!(
+                        "Variable datatype: {:?}, inferred datatype: {:?}",
+                        variable_type, expr_data_type
+                    );
+                }
 
                 Some(Statement::Assignment(name, expr))
             }
@@ -151,6 +170,47 @@ impl Parser {
 
             Some(Token::EOF) => None,
             _ => panic!("Unknown statement"),
+        }
+    }
+
+    fn infer_datatype(&mut self, exp: &Expression) -> Type {
+        match exp {
+            Expression::Number(_) => Type::Number,
+            Expression::Bool(_) => Type::Boolean,
+            Expression::Variable(name) => {
+                if let Some(t) = self.type_env.get(name) {
+                    t.clone()
+                } else {
+                    panic!("Unknown variable {}", name)
+                }
+            }
+            BinaryOperation {
+                left,
+                operator,
+                right,
+            } => {
+                let left_type = self.infer_datatype(left);
+                let right_type = self.infer_datatype(right);
+
+                match operator.as_str() {
+                    "+" | "-" | "*" | "/" | ">" | "<" => {
+                        if left_type == Type::Number && right_type == Type::Number {
+                            Type::Number
+                        } else {
+                            panic!("operator {} requires number operand", operator);
+                        }
+                    }
+
+                    "==" => {
+                        if left_type == right_type {
+                            left_type
+                        } else {
+                            panic!("operator {} requires same type operand", operator);
+                        }
+                    }
+                    _ => panic!("unknown operator {}", operator),
+                }
+            }
         }
     }
 

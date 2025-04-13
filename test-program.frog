@@ -1,7 +1,12 @@
-let x: number = 0;
+let x = 0;
+let y : number = 10;
+let z = x + y;
+croak z;
 
 while x < 9
 {
   x = x + 1;
   croak x;
 }
+
+croak x;

@@ -21,10 +21,11 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 
 - [x] Error reporting (e.g., type mismatches, unknown variables)
 - [x] Top-down parser with operator precedence
-- [ ] Bottom-up parser (not required for your current scope)
+- [ ] Bottom-up parser 
 - [ ] Nested scopes (e.g., block-local variables)
 - [x] Static types (`let x: number = ...`)
-- [x] Type checker with compile-time type errors
+- [x] Type checker with compile-time type error
+- [x] Type inference at compile-time
 - [ ] Transpile AST to Python or Java
 
 ## ✨ Initial Features
@@ -42,15 +43,18 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 <statement_list> ::= <statement>
                    | <statement> ";" <statement_list>
 
-<statement> ::= <assignment>
+<statement> ::= <declaration>
               | <print>
               | <while>
+              | <assignment>
 
-<assignment> ::= "let" <identifier> ":" <type> "=" <expression>
+<declaration> ::= "let" <identifier> { ":" <type> } "=" <expression>
 
 <print> ::= "croak" <expression>
 
 <while> ::= "while" <expression> "{" <statement_list> "}"
+
+<assignment> ::= <identifier> "=" <expression>
 
 <expression> ::= <term>
                | <expression> "+" <term>
