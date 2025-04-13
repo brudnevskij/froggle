@@ -50,7 +50,7 @@ fn repl() {
 
         // print
         println!("Environment:");
-        println!("{:#?}", interpreter.environment);
+        println!("{:#?}", interpreter.environments);
     }
 }
 

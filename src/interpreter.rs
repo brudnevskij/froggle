@@ -9,10 +9,6 @@ pub enum Value {
     Bool(bool),
 }
 
-pub struct Interpreter {
-    pub environment: HashMap<String, Value>,
-}
-
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match self {
@@ -31,11 +27,50 @@ impl PartialEq for Value {
     }
 }
 
+pub struct Interpreter {
+    pub environments: Vec<HashMap<String, Value>>,
+}
+
 impl Interpreter {
     pub fn new() -> Interpreter {
-        Self {
-            environment: HashMap::new(),
+        let mut environments = Vec::new();
+        environments.push(HashMap::new());
+        Self { environments }
+    }
+
+    // scope & variables
+    fn enter_scope(&mut self) {
+        self.environments.push(HashMap::new());
+    }
+
+    fn exit_scope(&mut self) {
+        self.environments.pop();
+    }
+
+    fn declare_variable(&mut self, name: String, value: Value) {
+        self.environments
+            .last_mut()
+            .expect(format!("error declaring variable {}", name).as_str())
+            .insert(name, value);
+    }
+
+    fn assign_variable(&mut self, name: String, value: Value) {
+        for scope in self.environments.iter_mut().rev() {
+            if scope.contains_key(&name) {
+                scope.insert(name, value);
+                return;
+            }
         }
+        panic!("error assigning to non-existent variable {}", name);
+    }
+
+    fn resolve_variable(&mut self, name: &String) -> Value {
+        for scope in self.environments.iter_mut().rev() {
+            if let Some(value) = scope.get(name) {
+                return value.clone();
+            }
+        }
+        panic!("error resolving variable {}", name);
     }
 
     pub fn interpret(&mut self, program: Vec<Statement>) {
@@ -48,17 +83,19 @@ impl Interpreter {
         match statement {
             Statement::Assignment(var, exp) => {
                 let value = self.eval_expression(exp);
-                self.environment.insert(var, value);
+                self.assign_variable(var, value);
             }
             Statement::Declaration(var, exp) => {
                 let value = self.eval_expression(exp);
-                self.environment.insert(var, value);
+                self.declare_variable(var, value);
             }
             Statement::Print(exp) => {
                 println!("{:?}", self.eval_expression(exp))
             }
             Statement::While { condition, body } => {
+                self.enter_scope();
                 self.eval_while_loop(condition, body);
+                self.exit_scope();
             }
         }
     }
@@ -81,10 +118,7 @@ impl Interpreter {
         match expression {
             Expression::Number(n) => Value::Number(n),
             Expression::Bool(b) => Value::Bool(b),
-            Expression::Variable(var) => match self.environment.get(&var) {
-                None => panic!("Undefined variable: {}", var),
-                Some(val) => val.clone(),
-            },
+            Expression::Variable(name) => self.resolve_variable(&name),
             Expression::BinaryOperation {
                 left,
                 operator,
@@ -137,7 +171,7 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("x"), Some(&Value::Number(10)));
+        assert_eq!(interpreter.environments.get("x"), Some(&Value::Number(10)));
     }
 
     #[test]
@@ -150,7 +184,7 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("y"), Some(&Value::Number(8)));
+        assert_eq!(interpreter.environments.get("y"), Some(&Value::Number(8)));
     }
 
     #[test]
@@ -162,7 +196,7 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("x"), Some(&Value::Number(7)));
+        assert_eq!(interpreter.environments.get("x"), Some(&Value::Number(7)));
     }
 
     #[test]
@@ -174,6 +208,6 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environment.get("x"), Some(&Value::Number(9)));
+        assert_eq!(interpreter.environments.get("x"), Some(&Value::Number(9)));
     }
 }

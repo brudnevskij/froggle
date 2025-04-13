@@ -76,7 +76,6 @@ impl Parser {
                     _ => panic!("Expected identifier after 'let'"),
                 };
 
-                // println!("{}, {:?}",name, self.peek());
                 match self.advance() {
                     Some(Token::Operator(op)) if op == "=" => {
                         let expr = self.parse_expression();
