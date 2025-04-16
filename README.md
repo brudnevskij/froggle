@@ -75,20 +75,19 @@ froggle
 <block> ::= "{" <statement_list> "}"
 
 <expression> ::= <term>
+               | <term> "*" <term>
+               | <term> "/" <term>
                | <expression> "+" <term>
                | <expression> "-" <term>
                | <expression>  "==" <term>
                | <expression>  ">" <term>
                | <expression>  "<" <term>               
 
-<term> ::= <factor>
-         | <term> "*" <factor>
-         | <term> "/" <factor>
-
-<factor> ::= <number>
-           | <identifier>
-           | <bool>
-           | "(" <expression> ")"
+<term> ::= <term>
+         | <number>
+         | <identifier>
+         | <bool>
+         | "(" <expression> ")"
 
 <identifier> ::= <letter> { <letter> | <digit> }
 <number> ::= <digit> { <digit> }

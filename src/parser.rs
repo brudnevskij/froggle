@@ -3,6 +3,7 @@ use crate::parser::Expression::BinaryOperation;
 use crate::parser::Statement::While;
 use std::collections::HashMap;
 
+// Vec<Statement>
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Declaration(String, Expression),
@@ -167,6 +168,7 @@ impl Parser {
 
                 Some(Statement::Assignment(name, expr))
             }
+
             Some(Token::Keyword(k)) if k == "croak" => {
                 self.advance(); // consume "print"
                 let expr = self.parse_expression();
