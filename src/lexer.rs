@@ -65,7 +65,7 @@ impl<'a> Lexer<'a> {
                         }
 
                         let token = match word.as_str() {
-                            "let" | "croak" | "while" => Keyword(word),
+                            "let" | "croak" | "while" | "func" => Keyword(word),
                             "bool" | "number" => Token::Type(word),
                             "true" | "false" => Token::Bool(word.as_str() == "true"),
                             _ => match word.parse::<i32>() {

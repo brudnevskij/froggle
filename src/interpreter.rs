@@ -104,6 +104,13 @@ impl Interpreter {
                 }
                 self.exit_scope();
             }
+            Statement::FunctionDeclaration {
+                name,
+                params,
+                return_type,
+                body,
+            } => {}
+            Statement::Expression(_) => {}
         }
     }
 
@@ -146,6 +153,9 @@ impl Interpreter {
                     (l, "==", r) => Bool(l == r),
                     _ => panic!("unsupported operation: {}", operator.as_str()),
                 }
+            }
+            Expression::FunctionCall { name, arguments } => {
+                todo!()
             }
         }
     }

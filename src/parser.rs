@@ -14,6 +14,13 @@ pub enum Statement {
         body: Vec<Statement>,
     },
     Block(Vec<Statement>),
+    FunctionDeclaration {
+        name: String,
+        params: Vec<(String, Type)>,
+        return_type: Type,
+        body: Vec<Statement>,
+    },
+    Expression(Expression),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -26,12 +33,17 @@ pub enum Expression {
         operator: String,
         right: Box<Expression>,
     },
+    FunctionCall {
+        name: String,
+        arguments: Vec<Expression>,
+    },
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     Number,
     Boolean,
+    Void,
 }
 
 pub struct Parser {
@@ -150,25 +162,38 @@ impl Parser {
                 let name = name.clone();
                 self.advance();
 
-                let variable_type = self.resolve_variable(&name);
+                if Some(&Token::Punctuation("(".to_string())) == self.peek() {
+                    self.advance();
 
-                self.expect(Token::Operator("=".to_string()));
+                    let arguments = self.parse_function_args();
 
-                let expr = self.parse_expression();
-                self.expect(Token::Punctuation(";".to_string()));
+                    self.expect(Token::Punctuation(")".to_string()));
+                    self.expect(Token::Punctuation(";".to_string()));
 
-                // asserting data type
-                let expr_data_type = self.infer_datatype(&expr);
-                if expr_data_type != variable_type {
-                    panic!(
-                        "Variable datatype: {:?}, inferred datatype: {:?}",
-                        variable_type, expr_data_type
-                    );
+                    Some(Statement::Expression(Expression::FunctionCall {
+                        name,
+                        arguments,
+                    }))
+                } else {
+                    let variable_type = self.resolve_variable(&name);
+
+                    self.expect(Token::Operator("=".to_string()));
+
+                    let expr = self.parse_expression();
+                    self.expect(Token::Punctuation(";".to_string()));
+
+                    // asserting data type
+                    let expr_data_type = self.infer_datatype(&expr);
+                    if expr_data_type != variable_type {
+                        panic!(
+                            "Variable datatype: {:?}, inferred datatype: {:?}",
+                            variable_type, expr_data_type
+                        );
+                    }
+
+                    Some(Statement::Assignment(name, expr))
                 }
-
-                Some(Statement::Assignment(name, expr))
             }
-
             Some(Token::Keyword(k)) if k == "croak" => {
                 self.advance(); // consume "print"
                 let expr = self.parse_expression();
@@ -201,26 +226,97 @@ impl Parser {
             Some(Token::Punctuation(p)) if p == "{" => {
                 self.advance();
 
-                let mut block = Vec::new();
-                self.enter_scope();
-                while let Some(t) = self.peek() {
-                    if t == &Token::Punctuation("}".to_string()) {
-                        break;
-                    }
+                let block = self.parse_block();
 
-                    if let Some(stmt) = self.parse_statement() {
-                        block.push(stmt);
-                    }
-                }
-                self.exit_scope();
                 self.expect(Token::Punctuation("}".to_string()));
 
                 Some(Statement::Block(block))
             }
 
+            Some(Token::Keyword(k)) if k == "func" => {
+                self.advance();
+
+                let name = match self.advance() {
+                    Some(Token::Identifier(s)) => s.clone(),
+                    a => panic!("Expected identifier after 'func', got: {:?}", a),
+                };
+
+                self.expect(Token::Punctuation("(".to_string()));
+
+                let mut params = Vec::new();
+
+                while let Some(Token::Identifier(param_name)) = self.peek() {
+                    let param_name = param_name.clone();
+                    self.expect(Token::Punctuation(":".to_string()));
+
+                    let param_type = match self.advance() {
+                        Some(Token::Type(t)) if t == "bool" => Type::Boolean,
+                        Some(Token::Type(t)) if t == "number" => Type::Number,
+                        a => panic!("Expected type, got: {:?}", a),
+                    };
+                    params.push((param_name, param_type));
+
+                    if self.advance() == Some(&Token::Punctuation(",".to_string())) {
+                        continue;
+                    }
+                    {
+                        break;
+                    }
+                }
+
+                self.expect(Token::Punctuation(")".to_string()));
+
+                // let mut return_type : Type;
+                let return_type = match self.peek() {
+                    Some(Token::Punctuation(p)) if p == ":" => {
+                        self.advance();
+                        match self.advance() {
+                            Some(Token::Type(t)) if t == "number" => Type::Number,
+                            Some(Token::Type(t)) if t == "bool" => Type::Boolean,
+                            a => panic!("Expected type, got: {:?}", a),
+                        }
+                    }
+                    Some(Token::Punctuation(p)) if p == "{" => Type::Void,
+                    a => panic!("Expected type, got: {:?}", a),
+                };
+
+                self.expect(Token::Punctuation("{".to_string()));
+
+                let body = self.parse_block();
+
+                self.expect(Token::Punctuation("}".to_string()));
+
+                self.declare_variable(name.clone(), return_type.clone());
+
+                Some(Statement::FunctionDeclaration {
+                    name,
+                    params,
+                    return_type,
+                    body,
+                })
+            }
+
             Some(Token::EOF) => None,
             statement => panic!("unknown statement: {:?}", statement),
         }
+    }
+
+    fn parse_block(&mut self) -> Vec<Statement> {
+        let mut block = Vec::new();
+
+        self.enter_scope();
+        while let Some(t) = self.peek() {
+            if t == &Token::Punctuation("}".to_string()) {
+                break;
+            }
+
+            if let Some(stmt) = self.parse_statement() {
+                block.push(stmt);
+            }
+        }
+        self.exit_scope();
+
+        block
     }
 
     fn infer_datatype(&mut self, exp: &Expression) -> Type {
@@ -255,6 +351,7 @@ impl Parser {
                     _ => panic!("unknown operator {}", operator),
                 }
             }
+            Expression::FunctionCall { name, .. } => self.resolve_variable(name),
         }
     }
 
@@ -332,7 +429,23 @@ impl Parser {
         match self.advance() {
             Some(Token::Number(n)) => Expression::Number(*n),
             Some(Token::Bool(b)) => Expression::Bool(*b),
-            Some(Token::Identifier(name)) => Expression::Variable(name.clone()),
+            Some(Token::Identifier(name)) => {
+                let name = name.clone();
+                if self.peek() == Some(&Token::Punctuation("(".to_string())) {
+                    self.advance();
+
+                    let arguments = self.parse_function_args();
+
+                    self.expect(Token::Punctuation(")".to_string()));
+
+                    Expression::FunctionCall {
+                        name,
+                        arguments,
+                    }
+                } else {
+                    Expression::Variable(name)
+                }
+            }
             Some(Token::Punctuation(p)) if p == "(" => {
                 let expr = self.parse_expression();
                 self.expect(Token::Punctuation(")".to_string()));
@@ -345,6 +458,29 @@ impl Parser {
                 panic!("Unexpected EOF")
             }
         }
+    }
+
+    fn parse_function_args(&mut self) -> Vec<Expression> {
+        let mut args = Vec::new();
+
+        if Some(&Token::Punctuation(")".to_string())) == self.peek() {
+            return args;
+        }
+
+        loop {
+            let arg = self.parse_expression();
+            args.push(arg);
+            if self.peek() == Some(&Token::Punctuation(",".to_string())) {
+                self.advance();
+            }
+
+            match self.peek() {
+                Some(Token::Punctuation(t)) if t == "," => continue,
+                Some(Token::Punctuation(t)) if t == ")" => break,
+                a => panic!("Unexpected token {:?}", a),
+            }
+        }
+        args
     }
 }
 
