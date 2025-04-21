@@ -47,7 +47,7 @@ impl<'a> Lexer<'a> {
         loop {
             if let Some(c) = self.peek() {
                 match c {
-                    '(' | ')' | ';' | ':' | '{' | '}' => {
+                    '(' | ')' | ',' |';' | ':' | '{' | '}' => {
                         token_stream.push(Punctuation(c.to_string()));
                         self.position += 1;
                     }

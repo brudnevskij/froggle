@@ -247,6 +247,8 @@ impl Parser {
 
                 while let Some(Token::Identifier(param_name)) = self.peek() {
                     let param_name = param_name.clone();
+                    self.advance();
+
                     self.expect(Token::Punctuation(":".to_string()));
 
                     let param_type = match self.advance() {
@@ -256,10 +258,10 @@ impl Parser {
                     };
                     params.push((param_name, param_type));
 
-                    if self.advance() == Some(&Token::Punctuation(",".to_string())) {
+                    if self.peek() == Some(&Token::Punctuation(",".to_string())) {
+                        self.advance();
                         continue;
-                    }
-                    {
+                    }else{
                         break;
                     }
                 }
@@ -438,10 +440,7 @@ impl Parser {
 
                     self.expect(Token::Punctuation(")".to_string()));
 
-                    Expression::FunctionCall {
-                        name,
-                        arguments,
-                    }
+                    Expression::FunctionCall { name, arguments }
                 } else {
                     Expression::Variable(name)
                 }
@@ -460,6 +459,7 @@ impl Parser {
         }
     }
 
+    // parses function call arguments
     fn parse_function_args(&mut self) -> Vec<Expression> {
         let mut args = Vec::new();
 
@@ -470,13 +470,13 @@ impl Parser {
         loop {
             let arg = self.parse_expression();
             args.push(arg);
-            if self.peek() == Some(&Token::Punctuation(",".to_string())) {
-                self.advance();
-            }
 
             match self.peek() {
-                Some(Token::Punctuation(t)) if t == "," => continue,
                 Some(Token::Punctuation(t)) if t == ")" => break,
+                Some(Token::Punctuation(t)) if t == "," => {
+                    self.advance();
+                    continue
+                },
                 a => panic!("Unexpected token {:?}", a),
             }
         }
