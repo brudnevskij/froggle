@@ -1,5 +1,11 @@
-func hello() {
-    croak 1;
+func print(n: number) {
+    croak n;
 }
 
-hello();
+func print_sum(a:number, b:number) {
+    croak a + b;
+}
+
+print(10);
+
+print_sum(77, 33);

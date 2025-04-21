@@ -1,5 +1,5 @@
 use crate::interpreter::Value::Bool;
-use crate::parser::{Expression, Statement};
+use crate::parser::{Expression, Statement, Type};
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 
@@ -7,6 +7,7 @@ use std::collections::HashMap;
 pub enum Value {
     Number(i32),
     Bool(bool),
+    Void,
 }
 
 impl PartialEq for Value {
@@ -22,20 +23,39 @@ impl PartialEq for Value {
                     return b == o;
                 }
             }
+            Value::Void => {
+                if let Value::Void = other {
+                    return true;
+                }
+            }
         }
         false
     }
 }
 
+#[derive(Debug, Clone)]
+struct Function {
+    params: Vec<(String, Type)>,
+    return_type: Type,
+    body: Vec<Statement>,
+}
+
+
 pub struct Interpreter {
     pub environments: Vec<HashMap<String, Value>>,
+    functions: HashMap<String, Function>,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         let mut environments = Vec::new();
         environments.push(HashMap::new());
-        Self { environments }
+
+        let functions = HashMap::new();
+        Self {
+            environments,
+            functions,
+        }
     }
 
     // scope & variables
@@ -109,8 +129,17 @@ impl Interpreter {
                 params,
                 return_type,
                 body,
-            } => {}
-            Statement::Expression(_) => {}
+            } => {
+                let func = Function {
+                    params,
+                    return_type,
+                    body,
+                };
+                self.functions.insert(name, func);
+            }
+            Statement::Expression(exp) => {
+                self.eval_expression(exp);
+            }
         }
     }
 
@@ -155,7 +184,39 @@ impl Interpreter {
                 }
             }
             Expression::FunctionCall { name, arguments } => {
-                todo!()
+                let func = (*self
+                    .functions
+                    .get(&name)
+                    .expect(&format!("unknown function {}", name))
+                    ).clone();
+
+                self.enter_scope();
+                if arguments.len() != func.params.len() {
+                    panic!(
+                        "function {} expects {} arguments, got {}",
+                        name,
+                        func.params.len(),
+                        arguments.len()
+                    );
+                }
+
+                for ((param_name, _param_type), arg) in func.params.iter().zip(arguments) {
+                    let val = self.eval_expression(arg);
+                    self.declare_variable(param_name.clone(), val);
+                }
+
+                for stmt in &func.body {
+                    self.eval_statement(stmt.clone());
+                }
+
+                self.exit_scope();
+
+
+                if func.return_type == Type::Void {
+                    Value::Void
+                }else {
+                    todo!()
+                }
             }
         }
     }
