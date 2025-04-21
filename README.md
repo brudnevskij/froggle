@@ -63,6 +63,7 @@ froggle
               | <while>
               | <assignment>
               | <block>
+              | <function_decl>
 
 <declaration> ::= "let" <identifier> { ":" <type> } "=" <expression>
 
@@ -74,6 +75,15 @@ froggle
 
 <block> ::= "{" <statement_list> "}"
 
+<function_decl> ::= "func" <identifier> "(" [<param_list>] ")" ":" <type> <block>
+
+<param_list> ::= <identifier> ":" <type> { "," <identifier> ":" <type> }
+
+<function_call> ::= <identifier> "(" [<arg_list>] ")"
+
+<arg_list> ::= <expression> { "," <expression> }
+
+
 <expression> ::= <term>
                | <term> "*" <term>
                | <term> "/" <term>
@@ -81,7 +91,8 @@ froggle
                | <expression> "-" <term>
                | <expression>  "==" <term>
                | <expression>  ">" <term>
-               | <expression>  "<" <term>               
+               | <expression>  "<" <term>
+               | <function_call>               
 
 <term> ::= <term>
          | <number>
