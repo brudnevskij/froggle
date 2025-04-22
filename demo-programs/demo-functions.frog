@@ -10,7 +10,19 @@ func mul(a:number, b:number):number {
     return a * b;
 }
 
+func fib(n:number):number {
+    if n == 1 {
+        return 1;
+    }
+    if n == 0 {
+        return 0;
+    }
+
+    return fib(n-1) + fib(n-2);
+}
+
 print(10);
 
 print_sum(77, mul(11, 3));
 
+croak fib(6);
