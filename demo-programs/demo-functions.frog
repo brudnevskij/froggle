@@ -25,4 +25,6 @@ print(10);
 
 print_sum(77, mul(11, 3));
 
-croak fib(6);
+let fib_6 = fib(6);
+
+croak fib_6;
