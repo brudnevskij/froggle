@@ -36,10 +36,8 @@ impl PartialEq for Value {
 #[derive(Debug, Clone)]
 struct Function {
     params: Vec<(String, Type)>,
-    return_type: Type,
     body: Vec<Statement>,
 }
-
 
 pub struct Interpreter {
     pub environments: Vec<HashMap<String, Value>>,
@@ -99,23 +97,31 @@ impl Interpreter {
         }
     }
 
-    fn eval_statement(&mut self, statement: Statement) {
+    fn eval_statement(&mut self, statement: Statement) -> Option<Value> {
         match statement {
+            Statement::Return(exp) => {
+                let value = self.eval_expression(exp);
+                Some(value)
+            }
             Statement::Assignment(var, exp) => {
                 let value = self.eval_expression(exp);
                 self.assign_variable(var, value);
+                None
             }
             Statement::Declaration(var, exp) => {
                 let value = self.eval_expression(exp);
                 self.declare_variable(var, value);
+                None
             }
             Statement::Print(exp) => {
-                println!("{:?}", self.eval_expression(exp))
+                println!("{:?}", self.eval_expression(exp));
+                None
             }
             Statement::While { condition, body } => {
                 self.enter_scope();
                 self.eval_while_loop(condition, body);
                 self.exit_scope();
+                None
             }
             Statement::Block(statements) => {
                 self.enter_scope();
@@ -123,22 +129,18 @@ impl Interpreter {
                     self.eval_statement(statement);
                 }
                 self.exit_scope();
+                None
             }
             Statement::FunctionDeclaration {
-                name,
-                params,
-                return_type,
-                body,
+                name, params, body, ..
             } => {
-                let func = Function {
-                    params,
-                    return_type,
-                    body,
-                };
+                let func = Function { params, body };
                 self.functions.insert(name, func);
+                None
             }
             Statement::Expression(exp) => {
                 self.eval_expression(exp);
+                None
             }
         }
     }
@@ -187,8 +189,8 @@ impl Interpreter {
                 let func = (*self
                     .functions
                     .get(&name)
-                    .expect(&format!("unknown function {}", name))
-                    ).clone();
+                    .expect(&format!("unknown function {}", name)))
+                .clone();
 
                 self.enter_scope();
                 if arguments.len() != func.params.len() {
@@ -205,18 +207,16 @@ impl Interpreter {
                     self.declare_variable(param_name.clone(), val);
                 }
 
+                let mut return_value = Value::Void;
                 for stmt in &func.body {
-                    self.eval_statement(stmt.clone());
+                    if let Some(val) = self.eval_statement(stmt.clone()) {
+                        return_value = val;
+                        break;
+                    }
                 }
-
                 self.exit_scope();
 
-
-                if func.return_type == Type::Void {
-                    Value::Void
-                }else {
-                    todo!()
-                }
+                return_value
             }
         }
     }

@@ -6,6 +6,11 @@ func print_sum(a:number, b:number) {
     croak a + b;
 }
 
+func mul(a:number, b:number):number {
+    return a * b;
+}
+
 print(10);
 
-print_sum(77, 33);
+print_sum(77, mul(11, 3));
+

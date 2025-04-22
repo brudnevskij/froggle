@@ -21,6 +21,7 @@ pub enum Statement {
         body: Vec<Statement>,
     },
     Expression(Expression),
+    Return(Expression),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -194,11 +195,19 @@ impl Parser {
                     Some(Statement::Assignment(name, expr))
                 }
             }
+
             Some(Token::Keyword(k)) if k == "croak" => {
                 self.advance(); // consume "print"
                 let expr = self.parse_expression();
                 self.expect(Token::Punctuation(";".to_string()));
                 Some(Statement::Print(expr))
+            }
+
+            Some(Token::Keyword(k)) if k == "return" => {
+                self.advance();
+                let expr = self.parse_expression();
+                self.expect(Token::Punctuation(";".to_string()));
+                Some(Statement::Return(expr))
             }
 
             Some(Token::Keyword(k)) if k == "while" => {
@@ -261,7 +270,7 @@ impl Parser {
                     if self.peek() == Some(&Token::Punctuation(",".to_string())) {
                         self.advance();
                         continue;
-                    }else{
+                    } else {
                         break;
                     }
                 }
@@ -475,8 +484,8 @@ impl Parser {
                 Some(Token::Punctuation(t)) if t == ")" => break,
                 Some(Token::Punctuation(t)) if t == "," => {
                     self.advance();
-                    continue
-                },
+                    continue;
+                }
                 a => panic!("Unexpected token {:?}", a),
             }
         }
