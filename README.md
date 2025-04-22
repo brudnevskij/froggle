@@ -64,6 +64,7 @@ froggle
               | <assignment>
               | <block>
               | <function_decl>
+              | <return>
 
 <declaration> ::= "let" <identifier> { ":" <type> } "=" <expression>
 
@@ -83,6 +84,7 @@ froggle
 
 <arg_list> ::= <expression> { "," <expression> }
 
+<return> ::= "return" <expression>
 
 <expression> ::= <term>
                | <term> "*" <term>
