@@ -1,0 +1,11 @@
+let a = 10;
+
+if a > 0 {
+    croak a;
+}
+
+if a < 0 {
+    croak 0;
+} else {
+    croak 777;
+}
