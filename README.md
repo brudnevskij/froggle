@@ -25,21 +25,27 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 - [x] Static types (`let x: number = ...`)
 - [x] Type checker with compile-time type error
 - [x] Type inference at compile-time
+- [x] Function declarations and calls
+- [x] Return values from functions
+- [x] If and if-else control flow
+- [x] Expression statement evaluation
+- [x] REPL and file execution modes
 
-## ✨ Initial Features
+## ✨ Operators
 
 - Integer arithmetic (`+`, `-`, `*`, `/`)
 - Boolean operators (`==`, `>`, `<`)
 - Variable assignments
 - Print statement
+- Block statements
 
-## 🛠️ Installation
-Assuming you have Rust installed, build project: 
+## Installation
+Assuming you have Rust installed, build project:
 ```shell
 cargo build --release
 ```
 
-Add binary to PATH.
+Add binary to PATH:
 ```shell
 export PATH="$PATH:$(pwd)/target/release"
 ```
@@ -49,8 +55,9 @@ froggle ./source_file.frog
 # or run the REPL
 froggle
 ```
+There are five demo programs in the demo-programs dir.
 
-## 🔣 Grammar (BNF)
+## Grammar (BNF)
 
 ```bnf
 <program> ::= <statement_list>
@@ -66,6 +73,7 @@ froggle
               | <function_decl>
               | <return>
               | <if>
+              | <expression_statement>
 
 <declaration> ::= "let" <identifier> { ":" <type> } "=" <expression>
 
@@ -89,6 +97,8 @@ froggle
 
 <if> ::= "if" <expression> <statement> [ "else" <statement> ]
 
+<expression_statement> ::= <expression>
+
 <expression> ::= <term>
                | <term> "*" <term>
                | <term> "/" <term>
@@ -97,7 +107,7 @@ froggle
                | <expression>  "==" <term>
                | <expression>  ">" <term>
                | <expression>  "<" <term>
-               | <function_call>               
+               | <function_call>
 
 <term> ::= <term>
          | <number>
@@ -111,5 +121,5 @@ froggle
 
 <letter> ::= "a" | ... | "z" | "A" | ... | "Z"
 <digit> ::= "0" | ... | "9"
-<type> ::= "number" | "bool"
+<type> ::= "number" | "bool" | "void"
 ```
