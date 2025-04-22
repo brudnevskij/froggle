@@ -1,6 +1,6 @@
 use crate::lexer::Token;
 use crate::parser::Expression::BinaryOperation;
-use crate::parser::Statement::While;
+use crate::parser::Statement::{If, While};
 use std::collections::HashMap;
 
 // Vec<Statement>
@@ -19,6 +19,11 @@ pub enum Statement {
         params: Vec<(String, Type)>,
         return_type: Type,
         body: Vec<Statement>,
+    },
+    If {
+        condition: Expression,
+        then_block: Vec<Statement>,
+        else_block: Option<Vec<Statement>>,
     },
     Expression(Expression),
     Return(Expression),
@@ -212,23 +217,13 @@ impl Parser {
 
             Some(Token::Keyword(k)) if k == "while" => {
                 self.advance();
+
                 let condition = self.parse_expression();
                 self.expect(Token::Punctuation("{".to_string()));
 
-                self.enter_scope();
-                let mut body = Vec::new();
-                while let Some(t) = self.peek() {
-                    if t == &Token::Punctuation("}".to_string()) {
-                        break;
-                    }
-
-                    if let Some(stmt) = self.parse_statement() {
-                        body.push(stmt);
-                    }
-                }
-                self.exit_scope();
-
+                let body = self.parse_block();
                 self.expect(Token::Punctuation("}".to_string()));
+
                 Some(While { condition, body })
             }
 
@@ -240,6 +235,35 @@ impl Parser {
                 self.expect(Token::Punctuation("}".to_string()));
 
                 Some(Statement::Block(block))
+            }
+
+            Some(Token::Keyword(k)) if k == "if" => {
+                self.advance();
+
+                let condition = self.parse_expression();
+                self.expect(Token::Punctuation("{".to_string()));
+
+                let then_block = self.parse_block();
+                self.expect(Token::Punctuation("}".to_string()));
+
+                if self.peek() != Some(&Token::Keyword("else".to_string())) {
+                    return Some(If {
+                        condition,
+                        then_block,
+                        else_block: None,
+                    });
+                }
+                self.advance();
+                self.expect(Token::Punctuation("{".to_string()));
+
+                let else_block = self.parse_block();
+                self.expect(Token::Punctuation("}".to_string()));
+
+                Some(If {
+                    condition,
+                    then_block,
+                    else_block: Some(else_block),
+                })
             }
 
             Some(Token::Keyword(k)) if k == "func" => {

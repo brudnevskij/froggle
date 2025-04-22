@@ -142,6 +142,32 @@ impl Interpreter {
                 self.eval_expression(exp);
                 None
             }
+            Statement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                if self.eval_condition(condition) {
+                    for stmt in then_block {
+                        if let Some(value) = self.eval_statement(stmt){
+                            return Some(value);
+                        }
+                    }
+                    return None;
+                }
+
+                match else_block {
+                    None => None,
+                    Some(else_block) => {
+                        for stmt in else_block {
+                            if let Some(value) = self.eval_statement(stmt){
+                                return Some(value);
+                            }
+                        }
+                        None
+                    }
+                }
+            }
         }
     }
 
