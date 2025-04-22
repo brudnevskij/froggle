@@ -65,6 +65,7 @@ froggle
               | <block>
               | <function_decl>
               | <return>
+              | <if>
 
 <declaration> ::= "let" <identifier> { ":" <type> } "=" <expression>
 
@@ -85,6 +86,8 @@ froggle
 <arg_list> ::= <expression> { "," <expression> }
 
 <return> ::= "return" <expression>
+
+<if> ::= "if" <expression> <statement> [ "else" <statement> ]
 
 <expression> ::= <term>
                | <term> "*" <term>
