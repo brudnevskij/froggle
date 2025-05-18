@@ -29,6 +29,44 @@ pub enum Statement {
     Return(Expression),
 }
 
+impl Statement {
+    pub fn accept<V: ASTVisitor>(&self, visitor: &mut V) {
+        match self {
+            Statement::Declaration(name, exp) => {
+                visitor.visit_declaration(name.clone(), exp.clone())
+            }
+            Statement::Assignment(name, exp) => visitor.visit_assignment(name.clone(), exp.clone()),
+
+            Statement::Print(exp) => visitor.visit_print(exp.clone()),
+
+            While { condition, body } => visitor.visit_while(condition.clone(), body.clone()),
+
+            Statement::Block(stmt) => visitor.visit_block(stmt.clone()),
+            Statement::FunctionDeclaration {
+                name,
+                params,
+                return_type,
+                body,
+            } => visitor.visit_function_declaration(
+                name.clone(),
+                params.clone(),
+                return_type.clone(),
+                body.clone(),
+            ),
+
+            If {
+                condition,
+                then_block,
+                else_block,
+            } => visitor.visit_if(condition.clone(), then_block.clone(), else_block.clone()),
+
+            Statement::Expression(exp) => visitor.visit_expression(exp.clone()),
+
+            Statement::Return(ret) => visitor.visit_return(ret.clone()),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Number(i32),
@@ -50,6 +88,29 @@ pub enum Type {
     Number,
     Boolean,
     Void,
+}
+
+pub trait ASTVisitor {
+    fn visit_declaration(&mut self, name: String, expr: Expression);
+    fn visit_assignment(&mut self, name: String, expr: Expression);
+    fn visit_print(&mut self, expr: Expression);
+    fn visit_while(&mut self, condition: Expression, body: Vec<Statement>);
+    fn visit_block(&mut self, statements: Vec<Statement>);
+    fn visit_function_declaration(
+        &mut self,
+        name: String,
+        params: Vec<(String, Type)>,
+        return_type: Type,
+        body: Vec<Statement>,
+    );
+    fn visit_if(
+        &mut self,
+        condition: Expression,
+        body: Vec<Statement>,
+        else_branch: Option<Vec<Statement>>,
+    );
+    fn visit_expression(&mut self, expr: Expression);
+    fn visit_return(&mut self, expr: Expression);
 }
 
 pub struct Parser {
