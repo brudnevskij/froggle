@@ -30,6 +30,7 @@ Froggle is a tiny toy programming language written in Rust as part of a compiler
 - [x] If and if-else control flow
 - [x] Expression statement evaluation
 - [x] REPL and file execution modes
+- [x] Separated type checker using visitor pattern
 
 ## ✨ Operators
 

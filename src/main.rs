@@ -4,6 +4,7 @@ use std::{env, fs, io};
 mod interpreter;
 mod lexer;
 mod parser;
+mod typechecker;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -45,6 +46,7 @@ fn repl() {
         let mut lexer = lexer::Lexer::new(&line);
         let mut parser = parser::Parser::new(lexer.parse());
         let ast = parser.parse();
+        typechecker::TypeChecker::new().check(ast.clone());
         interpreter.interpret(ast);
 
         // print
@@ -58,6 +60,7 @@ fn run_file(path: &str) {
         let mut lexer = lexer::Lexer::new(&src_code);
         let mut parser = parser::Parser::new(lexer.parse());
         let ast = parser.parse();
+        typechecker::TypeChecker::new().check(ast.clone());
         let mut interpreter = interpreter::Interpreter::new();
         interpreter.interpret(ast);
     } else {
