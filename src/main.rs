@@ -46,10 +46,7 @@ fn repl() {
         let mut lexer = lexer::Lexer::new(&line);
         let mut parser = parser::Parser::new(lexer.parse());
         let ast = parser.parse();
-        let mut typechecker = typechecker::TypeChecker::new();
-        for stmt in &ast {
-            stmt.accept(&mut typechecker);
-        }
+        typechecker::TypeChecker::new().check(ast.clone());
         interpreter.interpret(ast);
 
         // print
@@ -63,10 +60,7 @@ fn run_file(path: &str) {
         let mut lexer = lexer::Lexer::new(&src_code);
         let mut parser = parser::Parser::new(lexer.parse());
         let ast = parser.parse();
-        let mut typechecker = typechecker::TypeChecker::new();
-        for node in &ast {
-            node.accept(&mut typechecker);
-        }
+        typechecker::TypeChecker::new().check(ast.clone());
         let mut interpreter = interpreter::Interpreter::new();
         interpreter.interpret(ast);
     } else {

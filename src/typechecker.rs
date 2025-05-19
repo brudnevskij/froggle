@@ -100,7 +100,7 @@ impl TypeChecker {
         }
     }
 
-    fn check(&mut self, stmts: Vec<Statement>) {
+    pub fn check(&mut self, stmts: Vec<Statement>) {
         for stmt in stmts {
             stmt.accept(self);
         }
