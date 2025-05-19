@@ -108,7 +108,7 @@ impl Interpreter {
                 self.assign_variable(var, value);
                 None
             }
-            Statement::Declaration(var, exp) => {
+            Statement::Declaration(var, exp, _) => {
                 let value = self.eval_expression(exp);
                 self.declare_variable(var, value);
                 None
@@ -149,7 +149,7 @@ impl Interpreter {
             } => {
                 if self.eval_condition(condition) {
                     for stmt in then_block {
-                        if let Some(value) = self.eval_statement(stmt){
+                        if let Some(value) = self.eval_statement(stmt) {
                             return Some(value);
                         }
                     }
@@ -160,7 +160,7 @@ impl Interpreter {
                     None => None,
                     Some(else_block) => {
                         for stmt in else_block {
-                            if let Some(value) = self.eval_statement(stmt){
+                            if let Some(value) = self.eval_statement(stmt) {
                                 return Some(value);
                             }
                         }
@@ -275,7 +275,10 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environments.get("x"), Some(&Value::Number(10)));
+        assert_eq!(
+            interpreter.environments.pop().unwrap().get("x"),
+            Some(&Value::Number(10))
+        );
     }
 
     #[test]
@@ -288,7 +291,10 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environments.get("y"), Some(&Value::Number(8)));
+        assert_eq!(
+            interpreter.environments.pop().unwrap().get("y"),
+            Some(&Value::Number(8))
+        );
     }
 
     #[test]
@@ -300,7 +306,10 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environments.get("x"), Some(&Value::Number(7)));
+        assert_eq!(
+            interpreter.environments.pop().unwrap().get("x"),
+            Some(&Value::Number(7))
+        );
     }
 
     #[test]
@@ -312,6 +321,9 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.interpret(program);
 
-        assert_eq!(interpreter.environments.get("x"), Some(&Value::Number(9)));
+        assert_eq!(
+            interpreter.environments.pop().unwrap().get("x"),
+            Some(&Value::Number(9))
+        );
     }
 }

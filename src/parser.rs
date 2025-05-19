@@ -6,7 +6,7 @@ use std::collections::HashMap;
 // Vec<Statement>
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
-    Declaration(String, Expression),
+    Declaration(String, Expression, Option<Type>),
     Assignment(String, Expression),
     Print(Expression),
     While {
@@ -32,8 +32,8 @@ pub enum Statement {
 impl Statement {
     pub fn accept<V: ASTVisitor>(&self, visitor: &mut V) {
         match self {
-            Statement::Declaration(name, exp) => {
-                visitor.visit_declaration(name.clone(), exp.clone())
+            Statement::Declaration(name, exp, declared_type ) => {
+                visitor.visit_declaration(name.clone(), exp.clone(), declared_type.clone())
             }
             Statement::Assignment(name, exp) => visitor.visit_assignment(name.clone(), exp.clone()),
 
@@ -91,7 +91,7 @@ pub enum Type {
 }
 
 pub trait ASTVisitor {
-    fn visit_declaration(&mut self, name: String, expr: Expression);
+    fn visit_declaration(&mut self, name: String, expr: Expression, declared_type: Option<Type>);
     fn visit_assignment(&mut self, name: String, expr: Expression);
     fn visit_print(&mut self, expr: Expression);
     fn visit_while(&mut self, condition: Expression, body: Vec<Statement>);
@@ -151,22 +151,6 @@ impl Parser {
         self.type_envs.pop();
     }
 
-    fn declare_variable(&mut self, name: String, type_name: Type) {
-        self.type_envs
-            .last_mut()
-            .expect(format!("error declaring variable {}", name).as_str())
-            .insert(name, type_name);
-    }
-
-    fn resolve_variable(&mut self, name: &str) -> Type {
-        for scope in self.type_envs.iter_mut().rev() {
-            if let Some(type_name) = scope.get(name) {
-                return type_name.clone();
-            }
-        }
-        panic!("no variable {} in existing scopes", name);
-    }
-
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut statements = Vec::new();
         while let Some(stmt) = self.parse_statement() {
@@ -185,16 +169,11 @@ impl Parser {
                 };
 
                 match self.advance() {
-                    // type declaration omitted
+                    // implicit type declaration
                     Some(Token::Operator(op)) if op == "=" => {
                         let expr = self.parse_expression();
                         self.expect(Token::Punctuation(";".to_string()));
-
-                        let data_type = self.infer_datatype(&expr);
-
-                        self.declare_variable(name.clone(), data_type);
-
-                        Some(Statement::Declaration(name, expr))
+                        Some(Statement::Declaration(name, expr, None))
                     }
                     // explicit type declaration
                     Some(Token::Punctuation(op)) if op == ":" => {
@@ -209,17 +188,7 @@ impl Parser {
                         let expr = self.parse_expression();
                         self.expect(Token::Punctuation(";".to_string()));
 
-                        let expr_data_type = self.infer_datatype(&expr);
-                        if expr_data_type != declared_data_type {
-                            panic!(
-                                "Declared datatype: {:?}, inferred datatype: {:?}",
-                                declared_data_type, expr_data_type
-                            );
-                        }
-
-                        self.declare_variable(name.clone(), declared_data_type);
-
-                        Some(Statement::Declaration(name, expr))
+                        Some(Statement::Declaration(name, expr, Some(declared_data_type)))
                     }
                     _ => panic!("Unknown declaration structure"),
                 }
@@ -233,31 +202,16 @@ impl Parser {
                     self.advance();
 
                     let arguments = self.parse_function_args();
-
                     self.expect(Token::Punctuation(")".to_string()));
                     self.expect(Token::Punctuation(";".to_string()));
-
                     Some(Statement::Expression(Expression::FunctionCall {
                         name,
                         arguments,
                     }))
                 } else {
-                    let variable_type = self.resolve_variable(&name);
-
                     self.expect(Token::Operator("=".to_string()));
-
                     let expr = self.parse_expression();
                     self.expect(Token::Punctuation(";".to_string()));
-
-                    // asserting data type
-                    let expr_data_type = self.infer_datatype(&expr);
-                    if expr_data_type != variable_type {
-                        panic!(
-                            "Variable datatype: {:?}, inferred datatype: {:?}",
-                            variable_type, expr_data_type
-                        );
-                    }
-
                     Some(Statement::Assignment(name, expr))
                 }
             }
@@ -362,7 +316,6 @@ impl Parser {
 
                 self.expect(Token::Punctuation(")".to_string()));
 
-                // let mut return_type : Type;
                 let return_type = match self.peek() {
                     Some(Token::Punctuation(p)) if p == ":" => {
                         self.advance();
@@ -382,8 +335,6 @@ impl Parser {
 
                 self.expect(Token::Punctuation("}".to_string()));
 
-                self.declare_variable(name.clone(), return_type.clone());
-
                 Some(Statement::FunctionDeclaration {
                     name,
                     params,
@@ -400,7 +351,6 @@ impl Parser {
     fn parse_block(&mut self) -> Vec<Statement> {
         let mut block = Vec::new();
 
-        self.enter_scope();
         while let Some(t) = self.peek() {
             if t == &Token::Punctuation("}".to_string()) {
                 break;
@@ -410,45 +360,8 @@ impl Parser {
                 block.push(stmt);
             }
         }
-        self.exit_scope();
 
         block
-    }
-
-    fn infer_datatype(&mut self, exp: &Expression) -> Type {
-        match exp {
-            Expression::Number(_) => Type::Number,
-            Expression::Bool(_) => Type::Boolean,
-            Expression::Variable(name) => self.resolve_variable(name),
-            BinaryOperation {
-                left,
-                operator,
-                right,
-            } => {
-                let left_type = self.infer_datatype(left);
-                let right_type = self.infer_datatype(right);
-
-                match operator.as_str() {
-                    "+" | "-" | "*" | "/" | ">" | "<" => {
-                        if left_type == Type::Number && right_type == Type::Number {
-                            Type::Number
-                        } else {
-                            panic!("operator {} requires number operand", operator);
-                        }
-                    }
-
-                    "==" => {
-                        if left_type == right_type {
-                            left_type
-                        } else {
-                            panic!("operator {} requires same type operand", operator);
-                        }
-                    }
-                    _ => panic!("unknown operator {}", operator),
-                }
-            }
-            Expression::FunctionCall { name, .. } => self.resolve_variable(name),
-        }
     }
 
     fn parse_expression(&mut self) -> Expression {

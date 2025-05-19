@@ -108,8 +108,18 @@ impl TypeChecker {
 }
 
 impl ASTVisitor for TypeChecker {
-    fn visit_declaration(&mut self, name: String, expr: Expression) {
+    fn visit_declaration(&mut self, name: String, expr: Expression, declared_type: Option<Type>) {
         let variable_type = self.infer_datatype(&expr);
+
+        if let Some(dt) = declared_type {
+            if variable_type != dt {
+                panic!(
+                    "Type mismatch in declaration of {}: expected {:?}, got {:?}",
+                    name, dt, variable_type
+                );
+            }
+        }
+
         self.declare_variable(name, variable_type);
     }
 
