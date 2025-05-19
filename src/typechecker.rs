@@ -230,7 +230,7 @@ mod tests {
     fn test_variable_declaration_and_assignment() {
         let mut checker = TypeChecker::new();
         let stmts = vec![
-            Statement::Declaration("x".into(), number_expr(10)),
+            Statement::Declaration("x".into(), number_expr(10),None),
             Statement::Assignment("x".into(), number_expr(42)),
         ];
         checker.check(stmts);
@@ -241,7 +241,7 @@ mod tests {
     fn test_type_mismatch_assignment() {
         let mut checker = TypeChecker::new();
         let stmts = vec![
-            Statement::Declaration("x".into(), number_expr(10)),
+            Statement::Declaration("x".into(), number_expr(10), None),
             Statement::Assignment("x".into(), bool_expr(true)),
         ];
         checker.check(stmts);
@@ -272,11 +272,11 @@ mod tests {
     fn test_valid_while_condition() {
         let mut checker = TypeChecker::new();
         let stmts = vec![
-            Statement::Declaration("cond".into(), bool_expr(true)),
+            Statement::Declaration("cond".into(), bool_expr(true) , None),
             Statement::While {
                 condition: var("cond"),
                 body: vec![
-                    Statement::Declaration("x".into(), number_expr(5)),
+                    Statement::Declaration("x".into(), number_expr(5), None),
                     Statement::Assignment("x".into(), number_expr(10)),
                 ],
             },
@@ -288,7 +288,7 @@ mod tests {
     fn test_scope_within_while_block() {
         let mut checker = TypeChecker::new();
         let stmts = vec![
-            Statement::Declaration("x".to_string(), Number(0)),
+            Statement::Declaration("x".to_string(), Number(0), None),
             Statement::While {
                 condition: bool_expr(true),
                 body: vec![Statement::Assignment("x".to_string(), Number(10))],
